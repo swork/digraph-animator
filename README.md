@@ -196,7 +196,7 @@ of objects:
 ```javascript
 {
   "id": "string",
-  "ref": "string" (or ["string", "string] tuple),
+  "ref": "string" (or ["string", "string"] tuple),
   schema_identifier: {
     ...
   }
@@ -225,13 +225,14 @@ container includes a "ref" key, the schema object MAY omit its `ref`
 item, inheriting the `ref` value of the container instead.
 
 Here's a rewrite of an earlier example defining two nodes with an edge
-between them, this time in a container object. The `id` is omitted, so
-the edge can't be referenced elsewhere in the dataset:
+between them, this time in a container object. An `id` is present, so
+the edge can be referenced elsewhere in the dataset:
 
 ```javascript
 {
   "ref": "a",
   "Edge": {
+    "id": "a-to-b",
     "Edge": "b"
   }
 }
