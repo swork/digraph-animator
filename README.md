@@ -62,8 +62,10 @@ Edge items in the database are implicitly unordered, though extensions
 and implementations may impose an ordering for purposes beyond those
 of the base digraph-animator system.
 
-`Edge` items are described by Extension item
-`["digraph-animator","Edge"]`, an annotation instance described below.
+`Edge` items are described by an Extension instance implicitly or
+explicitly included in every dataset and defined below. (If explicit,
+the Edge instance serves to allow processors to validate the version
+of the Edge class used in the dataset matches its expectations.)
 
 ### Abstract annotation class
 
@@ -106,16 +108,47 @@ requirements of the corresponding URL endpoints are not yet defined.)
 #### `schema_identifier` values
 
 `schema_identifier` keys are strings corresponding to Extension
-annotations (explicit in the dataset, or implicit by definition here;
-or implicit by definition elsewhere, supporting implementation code).
+annotations (explicit in the dataset, or implicit by definition here).
 
-Each `schema_identifier` values used in a dataset SHOULD appear in an
+Each `schema_identifier` key string used in a dataset SHOULD appear in an
 Extension annotation in the dataset, specifically in the Extension
 field of that annotation. (Implementations get coded to expectations
 of the Extension schema details, not to the Extension annotations
 themselves; but the Extension annotations' "version" fields can help
 validate that the schema as used in the dataset meets those
 expectations.)
+
+`schema_identifier` values are objects, the fields of which provide
+parameters to the annotation instance. Processors can refer to these
+parameters to adjust their handling of the associated item.
+
+As we'll describe later, parameter values for an annotation instance
+can also come from one or more Prototype annotation instances, raising
+the possibility of a parameter of the same name being defined in more
+than one place. The rules for handling such multiple definitions
+depend on the JSON data type of the parameter value:
+
+- String-valued parameters (that is, parameters declared to be strings
+  in the corresponding Extension annotation) take the value defined
+  closest to annotation instance.
+  
+  - If the parameter appears on the instance, that value supersedes
+    all others.
+
+  - Otherwise, if the parameter appears in a Prototype annotation
+    whose `ref` value matches the instance's `id` value, that value
+    supersedes all others. It is an error for the same string-valued
+    parameter to appear in more than one Prototype annotation having
+    the same `ref` value. Processors should test for this error
+    and abort if encountered.
+
+  - Otherwise, if the instance's `id` string appears among the strings
+    in a Class annotation's `refs` array and that Class annotation's
+    `ref` string matches the `id` string of a Prototype annotation
+    containing the parameter, that parameter value is used. It is an
+    error for the same string-valued parameter to appear in more than
+    one Prototype annotation so referenced. Processors should test for
+    this error and abort if encountered.
 
 ### Extensions
 
@@ -173,11 +206,41 @@ key. Since JSON doesn't allow duplicate keys this convention can't be
 applied to the Extension annotation's own instance. I've substituted
 "other-info" here instead.)
 
-#### Extension "Edge"
+#### Annotation: "Edge"
 
-#### Extension "Class"
+As discussed above, an Edge instance declares an edge and the nodes it
+connects. It can include a parameter "directed", a boolean indicating
+whether this edge is directed or not. The parameter "directed" can
+also be applied to the Edge Extension annotation (by a Prototype
+instance, or by a Class instance referencing an appropriate Prototype
+instance) to change the default for all Edge annotations in a dataset
+from false to true. (Note this implies a processor retrieving a remote
+annotation must also retrieve the corresponding remote Extension, if
+it exists, and any referencing annotations.)
 
-#### Extension "Prototype"
+#### Annotation: "Prototype"
+
+A Prototype instance serves as a collection of parameters for other
+annotation instances, to be applied to the annotation (or Node)
+referenced by its `ref` string. Parameters are fields in objects,
+themselves named to match Extension schema_identifier strings. Only
+parameters found in an object whose name matches the schema_identifier
+of the referent annotation instance are applied to that instance. (A
+Prototype can contain more than one such object-valued field, so that
+it can be applied to annotation instances of more than one Extension
+type via Class annotations, discussed below.)
+
+Because Prototype instances become integral with the item they modify,
+they must be retrieved and referenced any time the corresponding item
+is retrieved. To support this requirement and ensure Prototype
+instances are always visible when their referent items are visible,
+the Prototype Extension places a restriction on its instances' `ref`
+values, that they can only be a simple string (not a pair of strings,
+so not a remote reference).
+
+#### Annotation: "Class"
+
+A Class instance ties a Prototype instance to one or more additional referents. 
 
 ### Nodes
 
@@ -190,8 +253,8 @@ elsewhere in schema extensions.
 
 ## Schema instances: JSON
 
-In JSON the abstract schema is represented by an unordered collection
-of objects:
+We've already let slip that the abstract schema is represented in JSON
+by an unordered collection of objects:
 
 ```javascript
 {
