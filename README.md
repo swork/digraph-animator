@@ -132,23 +132,40 @@ depend on the JSON data type of the parameter value:
   in the corresponding Extension annotation) take the value defined
   closest to annotation instance.
   
-  - If the parameter appears on the instance, that value supersedes
+  * If the parameter appears on the instance, that value supersedes
     all others.
 
-  - Otherwise, if the parameter appears in a Prototype annotation
+  * Otherwise, if the parameter appears in a Prototype annotation
     whose `ref` value matches the instance's `id` value, that value
     supersedes all others. It is an error for the same string-valued
     parameter to appear in more than one Prototype annotation having
     the same `ref` value. Processors should test for this error
     and abort if encountered.
 
-  - Otherwise, if the instance's `id` string appears among the strings
+  * Otherwise, if the instance's `id` string appears among the strings
     in a Class annotation's `refs` array and that Class annotation's
     `ref` string matches the `id` string of a Prototype annotation
     containing the parameter, that parameter value is used. It is an
     error for the same string-valued parameter to appear in more than
     one Prototype annotation so referenced. Processors should test for
     this error and abort if encountered.
+
+- Array-valued parameters accumulate values from all possible sources
+  (instances, all directly-referring Prototype instances, and all
+  Prototype instances referring through Class instances).
+
+- Object-valued parameters accumulate values from all possible sources
+  (instances, all directly-referring Prototype instances, and all
+  Prototype instances referring through Class instances).
+
+- Note that all parameters have a defined type (string, array, or
+  object), defined unequivocally by a corresponding Extension instance
+  (whether explicit in the dataset or implicit, by definition in this
+  documentation). It is an error for a parameter to appear with a
+  different value type than its definition requires, or for a
+  parameter to appear in more than one place with different value
+  types. Processors should test for this error and abort if
+  encountered.
 
 ### Extensions
 
