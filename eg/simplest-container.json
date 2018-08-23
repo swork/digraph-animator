@@ -1,0 +1,44 @@
+[
+    {
+        "Container": {
+            "ref": "a",
+            "": [
+                {
+                    "Edge": {
+                        "id": "ab",
+                        "": "b"
+                    }
+                },
+                {
+                    "Edge": {
+                        "id": "ac",
+                        "": "c"
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "Extension": {
+            "id": "Edge/1.0.0",
+            "ref": ["digraph-animator-base", "Edge/1.0.0"],
+            "Extension": "Edge",
+            "version": "1.0.0",
+            "": "An `id` string or [source, `id`] tuple identifying the \
+                 target of this (di-)graph edge (a logical linkage between \
+                 the `ref` node and this `Edge` node).",
+            "directed": "A boolean indicating the edge is directed, from `ref` \
+                 to `Edge` target. Default if omitted is supplied by \
+                 context, or false."
+        }
+    },
+    {
+        "Extension": {
+            "id": "Container/1.0.0",
+            "ref": ["digraph-animator-base", "Container/1.0.0"],
+            "Extension": "Container",
+            "": ["Array", "of", "annotation", "objects"],
+            "NOTE": "Contained annotations can omit `ref` to use Container's `ref` value."
+        }
+    }
+]

@@ -1,0 +1,8 @@
+{
+  "Prototype": {
+    "id": "Prototype/1.0.0",
+    "ref": ["digraph-animator-base": "Prototype/1.0.0"],
+    "Extension": "Prototype",
+    "version": "1.0.0",
+  }
+}

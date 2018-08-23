@@ -1,0 +1,10 @@
+{
+  "id": "Edge/1.0.0",
+  "ref": ["digraph-animator-base", "Edge/1.0.0"],
+  "Extension": {
+    "Extension": "Edge",
+    "version": "1.0.0",
+    "": "An `id` string or [source, `id`] tuple identifying the target of this (di-)graph edge (a logical linkage between the `ref` node and this `Edge` node).",
+    "directed": "A boolean indicating the edge is directed, from `ref` to `Edge` target. Default if omitted is supplied by context, or false."
+  }
+}
