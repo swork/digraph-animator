@@ -59,6 +59,17 @@ nodes with `id` values "a" and "b":
 }
 ```
 
+or, equivalently,
+
+```javascript
+{
+  "ref": "a",
+  "Edge": {
+    "": "b"
+  }
+}
+```
+
 The nodes "a" and "b" here exist because they are referenced by this
 Edge annotation. They might also be referenced by other annotations.
 
@@ -229,9 +240,9 @@ is a little silly; but it might look something like this (in JSON):
 
 ```javascript
 {
+  "id": "Extension/1.0.0",
+  "ref": ["digraph-animator-base": "Extension/1.0.0"],
   "Extension": {
-    "id": "Extension/1.0.0",
-    "ref": ["digraph-animator-base": "Extension/1.0.0"],
     "": "Extension",
     "version": "1.0.0",
     "other-info": "Associates schema_identifiers with a version string for implementation validation, and with human-readable documentation."
@@ -256,12 +267,13 @@ it exists, and any referencing annotations.)
 A Prototype instance serves as a collection of parameters for other
 annotation instances, to be applied to the annotation (or Node)
 referenced by its `ref` string. Parameters are fields in objects,
-themselves named to match Extension schema_identifier strings. Only
-parameters found in an object whose name matches the schema_identifier
-of the referent annotation instance are applied to that instance. (A
-Prototype can contain more than one such object-valued field, so that
-it can be applied to annotation instances of more than one Extension
-type via Class annotations, discussed below.)
+themselves named to match Extension `schema_identifier` strings. Only
+parameters found in an object whose name matches the
+`schema_identifier` of the referent annotation instance are applied to
+that instance. (A Prototype can contain more than one such
+object-valued field, so that it can be applied to annotation instances
+of more than one Extension type via Class annotations, discussed
+below.)
 
 A Prototype referencing an Extension item applies to all items in the
 dataset whose `schema_identifier` matches that Extension - effectively
@@ -335,7 +347,9 @@ the edge can be referenced elsewhere in the dataset:
     "": [
       {
         "id": "a-to-b",
-        "Edge": "b"
+        "Edge": {
+          "": "b"
+        }
       }
     ]
   }
@@ -362,9 +376,9 @@ process if major version expectations aren't met.
 
 ```javascript
 {
+  "id": "Node/1.0.0",
+  "ref": ["digraph-animator-base", "Node/1.0.0"],
   "Node": {
-    "id": "Node/1.0.0",
-    "ref": ["digraph-animator-base", "Node/1.0.0"],
     "Extension": "Node",
     "version": "1.0.0",
     "": "Nodes are mostly targets of annotations, and aren't usually instantiated explicitly."
@@ -376,9 +390,9 @@ process if major version expectations aren't met.
 
 ```javascript
 {
+  "id": "Edge/1.0.0",
+  "ref": ["digraph-animator-base", "Edge/1.0.0"],
   "Extension": {
-    "id": "Edge/1.0.0",
-    "ref": ["digraph-animator-base", "Edge/1.0.0"],
     "Extension": "Edge",
     "version": "1.0.0",
     "": "An `id` string or [source, `id`] tuple identifying the \
@@ -396,23 +410,24 @@ process if major version expectations aren't met.
 ```javascript
 [
   {
+    "id": "Prototype/1.0.0",
+    "ref": ["digraph-animator-base": "Prototype/1.0.0"],
     "Extension": {
-      "id": "Prototype/1.0.0",
-      "ref": ["digraph-animator-base": "Prototype/1.0.0"],
       "Extension": "Prototype",
       "version": "1.0.0",
       "": "An object-valued field with key matching referenced item's schema_identifier is union'd with that item."
     }
   },
   {
+    "id": "example_prototype",
+    "ref": "some_other_id",
     "Prototype": {
-      "id": "example_prototype",
-      "ref": "some_other_id",
-      "Prototype": {
-        "Node": {
-          "parameter1": "Gets applied to referent some_other_id, IFF it's a Node"
-        }
-      }
+      "Node": {
+        "parameter1": "Gets applied to referent some_other_id, IFF it's a Node"
+      },
+      "Edge": {
+        "parameter2": "Gets applied to referent some_other_id, IFF it's an Edge"
+      },
     }
   }
 ]
@@ -423,9 +438,9 @@ process if major version expectations aren't met.
 ```javascript
 [
   {
+    "id": "Class/1.0.0",
+    "ref": ["digraph-animator-base": "Class/1.0.0"],
     "Extension": {
-      "id": "Class/1.0.0",
-      "ref": ["digraph-animator-base": "Class/1.0.0"],
       "Extension": "Class",
       "version": "1.0.0",
       "": "Names this Class, for reverse-reference associations between items and Prototypes",
@@ -433,8 +448,8 @@ process if major version expectations aren't met.
     }
   },
   {
+    "ref": "some_node_id",
     "Class": {
-      "ref": "some_node_id",
       "": "FancyNodes",
       "refs": ["a-to-b"]
     }
@@ -447,18 +462,18 @@ process if major version expectations aren't met.
 ```javascript
 [
   {
+    "id": "Extension/1.0.0",
+    "ref": ["digraph-animator-base": "Extension/1.0.0"],
     "Extension": {
-      "id": "Extension/1.0.0",
-      "ref": ["digraph-animator-base": "Extension/1.0.0"],
       "Extension": "Extension",
       "version": "1.0.0",
       "": "Associates schema_identifiers with a version string for implementation validation, and with human-readable documentation."
     }
   },
   {
+    "id": "example",
+    "ref": ["digraph-animator-base": "Extension/1.0.0"],
     "Extension": {
-      "id": "example",
-      "ref": ["digraph-animator-base": "Extension/1.0.0"],
       "": "Extension",
       "version": "1.0.0"
     },
