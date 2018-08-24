@@ -1,5 +1,0 @@
-
-
-validate = function (dataset) {
-    ;
-}
