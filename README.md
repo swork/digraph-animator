@@ -328,8 +328,9 @@ version strings against implementation expectations.)
 
 ### Containers
 
-A JSON schema object MAY be contained in an enclosing container
-object. A schema object MAY NOT itself serve as a container object. 
+A JSON schema object (other than Extension) MAY be contained in an
+enclosing container object. A schema object MAY NOT itself serve as a
+container object.
 
 A container object may have the string "ref" as a key. If a schema
 object is contained in an enclosing container object AND that

@@ -16,64 +16,49 @@ class DigraphAnimator {
     // Normalize and index the input digraph array
     //
     constructor(digraph) {
-        this.extensions_byID = {}
-        this.extensions_byName = {}
+        this.extensionNames = {}
         this.items = {}
-        this.nodes = {}
-        this.edges = {}
+        this.nodes = []
+        this.edges = []
 
         // Each object in the array can have .id and .ref elements
         // either directly or in the inner schema_identifier: {}
         // subobject. Normalize them to the outer object, supplying
         // Symbol() values for missing ids
-        let remainder = []
         for (let idx in digraph) {
-            remainder.push(this.preProcessItem(digraph[idx]))
+            this.registerNewAnnotationObject(digraph[idx])
         }
-        digraph = remainder
 
-        // Filter Extensions out to index objects
-        remainder = []
-        for (let idx in digraph) {
-            console.log("ctor loop 1 idx:", idx, "item:", digraph[idx])
-            let keeper = this.processExtensions(digraph[idx])
-            if (keeper) {
-                remainder.push(keeper)
+        let done = {}
+
+        // Process Extensions first
+        for (let id in this.items) {
+            let item = this.items[id]
+            if (item instanceof Extension) {
+                item.process(this)
+                done[id] = true
             }
         }
-        digraph = remainder
-
-        // Filter out Containers, expanding their content
-        remainder = []
-        for (let idx in digraph) {
-            let keepers = this.expandContainers(digraph[idx])
-            if (keepers) {
-                remainder = remainder.concat(keepers)
+        
+        // Expand Containers
+        for (let id in this.items) {
+            let item = this.items[id]
+            if (item instanceof Container) {
+                item.process(this)
+                done[id] = true
             }
         }
-        digraph = remainder
 
-        // Filter out and process explicit Nodes. After this, a
-        // missing ref elsewhere means "Instantiate an implicit Node
-        // with this ID".
-        remainder = []
-        for (let idx in digraph) {
-            let keeper = this.processNodes(digraph[idx])
-            if (keeper) {
-                remainder.push(keeper)
+        // Process everything else.
+        for (let id in this.items) {
+            if ( ! done[id]) {
+                let item = this.items[id]
+                item.process(this)
             }
-        }
-        digraph = remainder
-
-        // Index edges and other annotations, and do per-item
-        // processing. Includes instantiating implicit Nodes
-        // (referenced but not explicitly present in the dataset)
-        for (let idx in digraph) {
-            this.processItem(digraph[idx])
         }
     }
 
-    preProcessItem(originalItem) {
+    registerNewAnnotationObject(originalItem) {
         let id, ref, schema_identifier
 
         // Get schema_identifier from outer object
@@ -90,8 +75,6 @@ class DigraphAnimator {
                 schema_identifier = idx
             }
         }
-
-        console.log("preprocess si:", schema_identifier, "in:", originalItem)
 
         if (schema_identifier === undefined) {
             console.log("Funky item has no schema_identifier", originalItem)
@@ -128,42 +111,17 @@ class DigraphAnimator {
             rewrite['ref'] = ref
         }
 
-        return rewrite
-    }
-
-    ///
-    // item is { schema_identifier: innerOjb }. If Extension, validate
-    // and handle.
-    //
-    processExtensions(item) {
-        let si = Object.getOwnPropertyNames(item)[0]
-        if (si === 'Extension') {
-            // .id might be a Symbol, so non-enumerable
-            console.log("processExtensions id:", item[si].id)
-            this.items[item[si].id] = this.process_Extension(item[si])
-            return undefined
+        if (this.items[rewrite.id]) {
+            console.log("Duplicate item id:", originalItem)
+            throw "Duplicate item id"
         }
-        return item
-    }
 
-    ///
-    // If Container, return expansion
-    //
-    expandContainers(item) {
-        return item  // TBD
-    }
-
-    ///
-    // If Node, process/register it and filter it out of the input
-    //
-    processNodes(item) {
-        let si = Object.getOwnPropertyNames(item)[0]
-        if (si === 'Node') {
-            console.log("processNodes id:", item[si].id)
-            this.items[item[si].id] = this.process_Node(item[si])
-            return undefined
+        let ctor = DigraphAnimator.extensionRegistry[schema_identifier]
+        if (ctor) {
+            this.items[id] = new ctor(rewrite)
+        } else {
+            this.items[id] = new DigraphItemBase(rewrite, schema_identifier)
         }
-        return item
     }
 
     ///
@@ -173,98 +131,28 @@ class DigraphAnimator {
     // after all explicit Nodes have been found and registered, when a
     // .ref (or other reference parameter) finds no matching Node.
     //
-    instantiateMissingNode(id) {
+    instantiateMissingNode(id, processNow) {
         if (this.items[id] !== undefined) {
             console.log("instantiateMissingNode but not missing, id:", id)
             throw "instantiateMissingNode but not missing"
         }
-        this.items[id] = this.process_Node({
+        let newNode = this.items[id] = new Node({
             'Node': {
                 'id': id
             }
         })
-    }
-
-    ///// Per-item processing. Extensions have already been handled,
-    ///// Collections have been expanded, explicit Nodes have been
-    ///// processed.
-
-    processItem(item) {
-        let si = Object.getOwnPropertyNames(item)[0]
-        console.log('processItem si:', si)
-
-        if (item[si].ref !== undefined && this.items[item[si].ref] === undefined) {
-            this.instantiateMissingNode(item[si].ref)
-        }
-        
-        let fnname = 'process_' + si
-        if (this[fnname]) {
-            this.items[item[si].id] = this[fnname](item)
-        } else {
-            console.log("Unexpected item unhandled, continuing:", si)
-            this.items[item[si].id] = item
+        if (processNow) {
+            newNode.process(this)
         }
     }
-    
-    process_Extension(item) {
-        let validator = DigraphAnimator.extensionVersions[item.version]
-        if (validator) {
-            if ( ! semver(item.version).satisfies(validator)) {
-                console.log('Extension:', item[''], 'version:', item['version'], "isn't", validator)
-                throw "Unsatisfied Extension version"
-            }
-        }
-
-        if (this.extensions_byID[item.id]) {
-            throw "Duplicate extension ID"
-        }
-        this.extensions_byID[item.id] = item
-
-        if (this.extensions_byName[item['']]) {
-            throw "Duplicate extension name"
-        }
-        this.extensions_byName[item['']] = item
-        return item
-    }
-
-    process_Node(item) {
-        let inner = item.Node
-        console.log('process_Node', inner)
-        this.nodes[inner.id] = item
-        return item
-    }
-
-    process_Edge(item) {
-        let inner = item.Edge
-        console.log('process_Edge', item)
-        this.edges[inner.id] = item
-        
-        if (inner.ref === undefined) {
-            throw "Edge with no ref"
-        } else {
-            if (this.items[inner.ref] === undefined) {
-                this.instantiateMissingNode(inner.ref)
-            }
-        }
-        
-        if (inner[''] === undefined) {
-            throw "Edge with no target"
-        } else {
-            if (this.items[inner['']] === undefined) {
-                this.instantiateMissingNode(inner[''])
-            }
-        }
-        
-        return item
-    }
-
 }
 
 DigraphAnimator.symbolCounter = 0
 DigraphAnimator.extensionVersions = {
-    'Node': '=1',
-    'Edge': '=1',
-    'Extension': '=1'
+    Extension: '=1',
+    Container: '=1',
+    Node: '=1',
+    Edge: '=1'
 }
 
 class Extension extends DigraphItemBase {
@@ -272,12 +160,43 @@ class Extension extends DigraphItemBase {
         super(spec, 'Extension')
         let inner = spec.Extension
         this.version = inner.version
+        this.extensionName = inner['']
     }
+
+    process(da) {
+        let validator = DigraphAnimator.extensionVersions[this.version]
+        if (validator) {
+            if ( ! semver(this.version).satisfies(validator)) {
+                console.log('Extension:', item[''], 'version:', item['version'], "isn't", validator)
+                throw "Unsatisfied Extension version"
+            }
+        }
+
+        if (da.extensionNames[this.extensionName]) {
+            throw "Duplicate extension name"
+        }
+        da.extensionNames[this.extensionName] = this.id
+    }
+
 }
     
+class Container extends DigraphItemBase {
+    constructor(spec) {
+        super(spec, 'Container')
+    }
+
+    process(da) {
+        // expand the contents
+    }
+}
+
 class Node extends DigraphItemBase {
     constructor(spec) {
         super(spec, 'Node')
+    }
+
+    process(da) {
+        da.nodes.push(this.id)
     }
 }
 
@@ -295,10 +214,32 @@ class Edge extends DigraphItemBase {
             this.directed = true
         }
     }
+
+    process(da) {
+        da.edges.push(this.id)
+        let processNow__YES = true
+        
+        if (this.ref === undefined) {
+            throw "Edge with no ref"
+        } else {
+            if (da.items[this.ref] === undefined) {
+                da.instantiateMissingNode(this.ref, processNow__YES)
+            }
+        }
+        
+        if (this.target === undefined) {
+            throw "Edge with no target"
+        } else {
+            if (da.items[this.target] === undefined) {
+                da.instantiateMissingNode(this.target, processNow__YES)
+            }
+        }
+    }
 }
 
-DigraphAnimator.itemRegistry = {
+DigraphAnimator.extensionRegistry = {
     Extension,
+    Container,
     Node,
     Edge
 }
